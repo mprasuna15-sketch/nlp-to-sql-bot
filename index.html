@@ -1,0 +1,86 @@
+<!-- static/index.html -->
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <title>NL → SQL (Local Mistral)</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 900px; margin: 40px auto; }
+    textarea { width: 100%; min-height: 120px; }
+    input[type=file] { display:block; margin-bottom: 10px; }
+    table { border-collapse: collapse; width: 100%; margin-top: 10px;}
+    th, td { border: 1px solid #ddd; padding: 8px; }
+  </style>
+</head>
+<body>
+  <h1>NL → SQL (Local Mistral)</h1>
+
+  <h3>1) Upload CSV</h3>
+  <input id="csvfile" type="file" accept=".csv" />
+  <input id="tablename" placeholder="Optional table name (default: user_table)" />
+  <button id="uploadBtn">Upload CSV</button>
+  <div id="uploadStatus"></div>
+
+  <h3>2) Ask a question</h3>
+  <textarea id="question" placeholder="Ask something like: 'Show average price by category'"></textarea>
+  <button id="askBtn">Ask</button>
+
+  <h3>Result</h3>
+  <pre id="sqlBox"></pre>
+  <div id="results"></div>
+
+<script>
+const uploadBtn = document.getElementById("uploadBtn");
+const askBtn = document.getElementById("askBtn");
+
+uploadBtn.onclick = async () => {
+  const file = document.getElementById("csvfile").files[0];
+  const table = document.getElementById("tablename").value;
+  if (!file) { alert("Choose a CSV file"); return; }
+  const fd = new FormData();
+  fd.append("file", file);
+  if (table) fd.append("table", table);
+
+  document.getElementById("uploadStatus").innerText = "Uploading...";
+  const res = await fetch("/upload", { method: "POST", body: fd });
+  const j = await res.json();
+  document.getElementById("uploadStatus").innerText = JSON.stringify(j, null, 2);
+};
+
+askBtn.onclick = async () => {
+  const q = document.getElementById("question").value;
+  const table = document.getElementById("tablename").value;
+  if (!q) { alert("Type a question"); return; }
+  const fd = new FormData();
+  fd.append("question", q);
+  if (table) fd.append("table", table);
+
+  document.getElementById("sqlBox").innerText = "Waiting for LLM to generate SQL...";
+  const res = await fetch("/ask", { method: "POST", body: fd });
+  const j = await res.json();
+  if (res.ok) {
+    document.getElementById("sqlBox").innerText = j.sql;
+    const rows = j.rows || [];
+    if (rows.length === 0) {
+      document.getElementById("results").innerText = "No rows returned.";
+      return;
+    }
+    // build a small table
+    const cols = j.columns;
+    let html = "<table><thead><tr>";
+    for (const c of cols) html += "<th>" + c + "</th>";
+    html += "</tr></thead><tbody>";
+    for (const r of rows) {
+      html += "<tr>";
+      for (const c of cols) html += "<td>" + (r[c] === null ? "" : String(r[c])) + "</td>";
+      html += "</tr>";
+    }
+    html += "</tbody></table>";
+    document.getElementById("results").innerHTML = html;
+  } else {
+    document.getElementById("sqlBox").innerText = "Error: " + (j.error || JSON.stringify(j));
+  }
+};
+</script>
+</body>
+</html>
