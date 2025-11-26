@@ -1,0 +1,63 @@
+%%writefile static/index.html
+<!DOCTYPE html>
+<html>
+<head>
+<title>NL → SQL Bot (Mistral)</title>
+<style>
+body { font-family: Arial; max-width: 800px; margin: 40px auto; }
+textarea, input { width: 100%; margin-top: 10px; }
+button { padding: 10px; margin-top: 10px; }
+table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+th, td { border: 1px solid #ddd; padding: 8px; }
+</style>
+</head>
+<body>
+<h2>Upload CSV</h2>
+<input type="file" id="file">
+<button onclick="upload()">Upload</button>
+<pre id="uploadOut"></pre>
+
+<h2>Ask Question</h2>
+<textarea id="q" placeholder="Example: show average sales by category"></textarea>
+<button onclick="ask()">Ask</button>
+
+<h3>SQL Output</h3>
+<pre id="sql"></pre>
+
+<h3>Query Result</h3>
+<div id="result"></div>
+
+<script>
+async function upload(){
+    let f = document.getElementById("file").files[0];
+    let fd = new FormData();
+    fd.append("file", f);
+    let r = await fetch("/upload", {method:"POST", body:fd});
+    document.getElementById("uploadOut").textContent = JSON.stringify(await r.json(), null, 2);
+}
+
+async function ask(){
+    let fd = new FormData();
+    fd.append("question", document.getElementById("q").value);
+    let r = await fetch("/ask", {method:"POST", body:fd});
+    let j = await r.json();
+
+    document.getElementById("sql").textContent = j.sql || j.error;
+
+    if (j.rows){
+        let html = "<table><tr>";
+        j.columns.forEach(c => html += `<th>${c}</th>`);
+        html += "</tr>";
+        j.rows.forEach(row => {
+            html += "<tr>";
+            row.forEach(cell => html += `<td>${cell}</td>`);
+            html += "</tr>";
+        });
+        html += "</table>";
+        document.getElementById("result").innerHTML = html;
+    }
+}
+</script>
+
+</body>
+</html>
