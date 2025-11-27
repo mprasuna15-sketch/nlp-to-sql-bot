@@ -1,0 +1,13 @@
+fastapi
+uvicorn
+python-multipart
+pandas
+sqlite-utils
+orjson
+transformers
+accelerate
+huggingface-hub
+torch
+nest_asyncio
+pyngrok
+python-dotenv
