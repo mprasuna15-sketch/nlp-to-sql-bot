@@ -3,7 +3,7 @@ import os
 from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
 from huggingface_hub import login
 
-HF_TOKEN_ENV = "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"
+HF_TOKEN_ENV = "HUGGINGFACE_HUB_TOKEN"
 MODEL_ID = "mistral/mistral-7b-instruct"  # official HF identifier (subject to change)
 
 def ensure_logged_in():
